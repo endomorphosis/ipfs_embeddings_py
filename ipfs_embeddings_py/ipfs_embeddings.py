@@ -171,8 +171,9 @@ class ipfs_embeddings_py:
             raise ValueError("number is greater than the queue size")
         if number <= 0:
             raise ValueError("number must be greater than 0")
-        results = self.cid_queue.slice(0, number)
-        self.cid_queue = iter(self.cid_queue.slice(number, len(self.cid_queue)))
+        for i in range(number):
+            results.push(self.cid_queue.pop())
+            i += 1
         return results
     
     def pop_index_knn(self, number):
@@ -181,9 +182,11 @@ class ipfs_embeddings_py:
             raise ValueError("number is greater than the queue size")
         if number <= 0:
             raise ValueError("number must be greater than 0")
-        results = self.knn_queue.slice(0, number)
-        self.knn_queue = iter(self.knn_queue.slice(number, len(self.knn_queue)))
-        return results
+        for i in range(number):
+            results.push(self.knn_queue.pop())
+            i += 1
+        return None
+
 
     def test(self):
         self.add_tei_https_endpoint("BAAI/bge-m3", "62.146.169.111:80/embed",1)
