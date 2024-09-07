@@ -14,13 +14,17 @@ class ipfs_embeddings_py:
         self.cid_index = {}
         self.knn_index = {}
         self.endpoint_status = {}
+        self.add_https_endpoint = self.add_https_endpoint
+        self.rm_https_endpoint = self.rm_https_endpoint
+        self.queue_index_cid = self.queue_index_cid
+        self.queue_index_knn = self.queue_index_knn
         return None
     
     def load_index(self, index):
         self.index = index
         return None 
     
-    def add_tei_https_endpoint(self, model, endpoint, batch_size):
+    def add_https_endpoint(self, model, endpoint, batch_size):
         if model not in self.tei_https_endpoints:
             self.tei_https_endpoints[model] = {}
         if endpoint not in self.tei_https_endpoints[model]:  
@@ -34,7 +38,7 @@ class ipfs_embeddings_py:
             self.libp2p_endpoints[model][endpoint] = batch_size
         return None
     
-    def rm_tei_https_endpoint(self, model, endpoint):
+    def rm_https_endpoint(self, model, endpoint):
         if model in self.tei_https_endpoints and endpoint in self.tei_https_endpoints[model]:
             del self.tei_https_endpoints[model][endpoint]
             del self.endpoint_status[endpoint]
@@ -56,12 +60,12 @@ class ipfs_embeddings_py:
             return True
         return False
 
-    def get_tei_https_endpoint(self, model):
+    def get_https_endpoint(self, model):
         if model in self.tei_https_endpoints:
             return self.tei_https_endpoints[model]
         return None
 
-    def request_tei_https_endpoint(self, model, batch_size):
+    def request_https_endpoint(self, model, batch_size):
         if model in self.tei_https_endpoints:
             for endpoint in self.tei_https_endpoints[model]:
                 if self.endpoint_status[endpoint] == 1:
@@ -103,18 +107,38 @@ class ipfs_embeddings_py:
     def queue_index_cid(self, samples):
         if type(samples) is None:
             raise ValueError("samples must be a list")
-        if type(samples) is str:
+        if isinstance(samples, str):
             samples = [samples]
-        if type(samples) is iter:
+            self.knn_queue = iter(list(samples))
+            return True
+        if isinstance(samples, list):
+            self.knn_queue = list(self.knn_queue)
             for this_sample in samples:
-                self.cid_queue.append(this_sample)
-            pass
-        if type(samples) is list:
-            for this_sample in samples:
-                self.cid_queue.append(this_sample)
-
-        return None
+                self.knn_queue.append(this_sample)
+            self.knn_queue = iter(self.knn_queue)
+            return True
+        else:
+            raise ValueError("samples must be a list")
     
+    def queue_index_knn(self, samples):
+        print("queue_index_knn")
+        print(samples)
+        print(type(samples))
+        if samples is None:
+            raise ValueError("samples must be a list")
+        if isinstance(samples, str):
+            samples = [samples]
+            self.knn_queue = iter(list(samples))
+            return True
+        if isinstance(samples, list):
+            self.knn_queue = list(self.knn_queue)
+            for this_sample in samples:
+                self.knn_queue.append(this_sample)
+            self.knn_queue = iter(self.knn_queue)
+            return True
+        else:
+            raise ValueError("samples must be a list")
+
     def choose_endpoint(self):
         filtered_endpoints = {}
         filtered_endpoints = {k: v for k, v in self.endpoint_status.items() if v == 1}
