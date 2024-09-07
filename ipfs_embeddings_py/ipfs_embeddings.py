@@ -156,18 +156,30 @@ class ipfs_embeddings_py:
             ## request endpoint
             pass
         return None
-    
-    def pop_https_index_cid(self, samples):
 
-        choose_endpoint = self.choose_endpoint()
-        endpoint_chunk_size = self.tei_https_endpoints[choose_endpoint]
-        all_chunk = []
-        this_chunk = []
-        for i in range(samples):
-            this_chunk.append(self.cid_queue.pop())
-            if i % endpoint_chunk_size == 0:
-                all_chunk.append(this_chunk)
-                this_chunk = []
+    def pop_index_cid(self, number):
+        results = []
+        if number > len(self.cid_queue):
+            raise ValueError("number is greater than the queue size")
+        if number <= 0:
+            raise ValueError("number must be greater than 0")
+        
+        for i in range(number):
+            results.push(self.cid_queue.pop())
+            i += 1
+        return None
+    
+    def pop_index_knn(self, number):
+        results = []
+        if number > len(self.knn_queue):
+            raise ValueError("number is greater than the queue size")
+        if number <= 0:
+            raise ValueError("number must be greater than 0")
+        
+        for i in range(number):
+            results.push(self.knn_queue.pop())
+            i += 1
+        return None
 
 
     def test(self):
