@@ -185,7 +185,7 @@ class ipfs_embeddings_py:
         for i in range(number):
             results.push(self.knn_queue.pop())
             i += 1
-        return None
+        return results
 
 
     def test(self):
