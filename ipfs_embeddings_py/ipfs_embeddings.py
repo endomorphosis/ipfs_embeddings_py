@@ -7,7 +7,7 @@ class ipfs_embeddings_py:
     def __init__(self, resources, metedata):
         self.multiformats = ipfs_multiformats_py(resources, metedata)
         self.ipfs_only_hash = ipfs_only_hash_py(resources, metedata)
-        self.tei_https_endpoints = {}
+        self.https_endpoints = {}
         self.libp2p_endpoints = {}
         self.cid_queue = iter([])
         self.knn_queue = iter([])
@@ -155,6 +155,14 @@ class ipfs_embeddings_py:
             self
             ## request endpoint
             pass
+        return None
+    
+    def select_endpoint(self, model):
+        if model in self.tei_https_endpoints:
+            for endpoint in self.tei_https_endpoints[model]:
+                if self.endpoint_status[endpoint] == 1:
+                    self.endpoint_status[endpoint] = 0
+                    return endpoint
         return None
 
     def pop_index_cid(self, number):
