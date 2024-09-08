@@ -18,6 +18,9 @@ class ipfs_embeddings_py:
         self.rm_https_endpoint = self.rm_https_endpoint
         self.queue_index_cid = self.queue_index_cid
         self.queue_index_knn = self.queue_index_knn
+        self.choose_endpoint = self.choose_endpoint
+        self.pop_index_knn = self.pop_index_knn
+        self.pop_index_cid = self.pop_index_cid
         return None
     
     def load_index(self, index):
@@ -25,10 +28,10 @@ class ipfs_embeddings_py:
         return None 
     
     def add_https_endpoint(self, model, endpoint, batch_size):
-        if model not in self.tei_https_endpoints:
-            self.tei_https_endpoints[model] = {}
-        if endpoint not in self.tei_https_endpoints[model]:  
-            self.tei_https_endpoints[model][endpoint] = batch_size
+        if model not in self.https_endpoints:
+            self.https_endpoints[model] = {}
+        if endpoint not in self.https_endpoints[model]:  
+            self.https_endpoints[model][endpoint] = batch_size
         return None
     
     def add_libp2p_endpoint(self, model, endpoint, batch_size):
@@ -39,8 +42,8 @@ class ipfs_embeddings_py:
         return None
     
     def rm_https_endpoint(self, model, endpoint):
-        if model in self.tei_https_endpoints and endpoint in self.tei_https_endpoints[model]:
-            del self.tei_https_endpoints[model][endpoint]
+        if model in self.https_endpoints and endpoint in self.https_endpoints[model]:
+            del self.https_endpoints[model][endpoint]
             del self.endpoint_status[endpoint]
         return None
     
@@ -51,7 +54,7 @@ class ipfs_embeddings_py:
         return None
     
     def test_tei_https_endpoint(self, model, endpoint):
-        if model in self.tei_https_endpoints and endpoint in self.tei_https_endpoints[model]:
+        if model in self.https_endpoints and endpoint in self.https_endpoints[model]:
             return True
         return False
 
@@ -61,13 +64,13 @@ class ipfs_embeddings_py:
         return False
 
     def get_https_endpoint(self, model):
-        if model in self.tei_https_endpoints:
-            return self.tei_https_endpoints[model]
+        if model in self.https_endpoints:
+            return self.https_endpoints[model]
         return None
 
     def request_https_endpoint(self, model, batch_size):
-        if model in self.tei_https_endpoints:
-            for endpoint in self.tei_https_endpoints[model]:
+        if model in self.https_endpoints:
+            for endpoint in self.https_endpoints[model]:
                 if self.endpoint_status[endpoint] == 1:
                     return endpoint
         return None
@@ -148,7 +151,7 @@ class ipfs_embeddings_py:
             return filtered_endpoints
         
     def https_index_cid(self, samples, endpoint):
-        endpoint_chunk_size = self.tei_https_endpoints[endpoint]
+        endpoint_chunk_size = self.https_endpoints[endpoint]
         all_chunk = []
         this_chunk = []
         for i in range(samples):
@@ -158,8 +161,8 @@ class ipfs_embeddings_py:
         return None
     
     def select_endpoint(self, model):
-        if model in self.tei_https_endpoints:
-            for endpoint in self.tei_https_endpoints[model]:
+        if model in self.https_endpoints:
+            for endpoint in self.https_endpoints[model]:
                 if self.endpoint_status[endpoint] == 1:
                     self.endpoint_status[endpoint] = 0
                     return endpoint
@@ -189,9 +192,9 @@ class ipfs_embeddings_py:
 
 
     def test(self):
-        self.add_tei_https_endpoint("BAAI/bge-m3", "62.146.169.111:80/embed",1)
-        self.add_tei_https_endpoint("BAAI/bge-m3", "62.146.169.111:8080/embed",1)
-        self.add_tei_https_endpoint("BAAI/bge-m3", "62.146.168.111:8081/embed",1)
+        self.https_endpoints("BAAI/bge-m3", "62.146.169.111:80/embed",1)
+        self.https_endpoints("BAAI/bge-m3", "62.146.169.111:8080/embed",1)
+        self.https_endpoints("BAAI/bge-m3", "62.146.168.111:8081/embed",1)
         test_knn_index = {}
         test_cid_index = {}
         test_data = {
@@ -206,10 +209,10 @@ class ipfs_embeddings_py:
         print("test")
 
     def status(self):
-        return self.endpointStatus
+        return self.endpoint_status
     
     def setStatus(self,endpoint , status):
-        self.endpointStatus[endpoint] = status
+        self.endpoint_status[endpoint] = status
         return None
 
 if __name__ == '__main__':
