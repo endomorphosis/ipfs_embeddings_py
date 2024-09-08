@@ -2,7 +2,7 @@ from .ipfs_multiformats import *
 from .ipfs_only_hash import *
 import subprocess
 import os
-
+import json
 class ipfs_embeddings_py:
     def __init__(self, resources, metedata):
         self.multiformats = ipfs_multiformats_py(resources, metedata)
@@ -161,10 +161,12 @@ class ipfs_embeddings_py:
         if len(filtered_https_endpoints) == 0 and len(filtered_libp2p_endpoints) == 0:
             return None
         else:
-            return {
-                "https": filtered_https_endpoints,
-                "libp2p": filtered_libp2p_endpoints
-            }
+            this_endpoint = None
+            if len(list(filtered_https_endpoints.keys())) > 0:
+                this_endpoint = list(filtered_https_endpoints.keys())[0]
+            elif len(list(filtered_libp2p_endpoints.keys())) > 0:
+                this_endpoint = list(filtered_libp2p_endpoints.keys())[0]
+            return this_endpoint
         
     def https_index_cid(self, samples, endpoint):
         endpoint_chunk_size = self.https_endpoints[endpoint]
@@ -175,6 +177,22 @@ class ipfs_embeddings_py:
             ## request endpoint
             pass
         return None
+    
+    def https_index_knn(self, selected_endpoint, model):
+        batch_size = 0
+        if "http" in selected_endpoint:
+            batch_size = self.https_endpoints[model][selected_endpoint]
+        elif "libp2p" in selected_endpoint:
+            batch_size = self.libp2p_endpoints[model][selected_endpoint]
+        knn_stack = []
+        queue_knn = self.pop_index_knn(batch_size)
+        json_queue_knn = json.dumps(queue_knn)
+        for i in queue_knn:
+            query_request = "curl " +  selected_endpoint + " -X POST     -d '{\"inputs\": " + json_queue_knn +  " }' -H 'Content-Type: application/json'"
+            query_response = subprocess.check_output(query_request, shell=True).decode("utf-8")
+            query_response = json.loads(query_response)
+            knn_stack.append(query_response)
+        return knn_stack
     
     def select_endpoint(self, model):
         if model in self.https_endpoints:
@@ -197,13 +215,15 @@ class ipfs_embeddings_py:
     
     def pop_index_knn(self, number):
         results = []
-        if number > len(self.knn_queue):
+        knn_queue_list = list(self.knn_queue)
+        if number > len(knn_queue_list):
             raise ValueError("number is greater than the queue size")
         if number <= 0:
             raise ValueError("number must be greater than 0")
         for i in range(number):
-            results.push(self.knn_queue.pop())
+            results.append(knn_queue_list.pop())
             i += 1
+        self.knn_queue = iter(knn_queue_list)
         return results
 
 
