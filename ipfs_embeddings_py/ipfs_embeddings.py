@@ -30,15 +30,19 @@ class ipfs_embeddings_py:
     def add_https_endpoint(self, model, endpoint, batch_size):
         if model not in self.https_endpoints:
             self.https_endpoints[model] = {}
+            self.endpoint_status[endpoint] = 1
         if endpoint not in self.https_endpoints[model]:  
             self.https_endpoints[model][endpoint] = batch_size
+            self.endpoint_status[endpoint] = 1
         return None
     
     def add_libp2p_endpoint(self, model, endpoint, batch_size):
         if model not in self.libp2p_endpoints:
             self.libp2p_endpoints[model] = {}
+            self.endpoint_status[endpoint] = 1
         if endpoint not in self.libp2p_endpoints[model]:  
             self.libp2p_endpoints[model][endpoint] = batch_size
+            self.endpoint_status[endpoint] = 1
         return None
     
     def rm_https_endpoint(self, model, endpoint):
@@ -66,6 +70,11 @@ class ipfs_embeddings_py:
     def get_https_endpoint(self, model):
         if model in self.https_endpoints:
             return self.https_endpoints[model]
+        return None
+    
+    def get_libp2p_endpoint(self, model):
+        if model in self.libp2p_endpoints:
+            return self.libp2p_endpoints[model]
         return None
 
     def request_https_endpoint(self, model, batch_size):
@@ -142,13 +151,20 @@ class ipfs_embeddings_py:
         else:
             raise ValueError("samples must be a list")
 
-    def choose_endpoint(self):
-        filtered_endpoints = {}
-        filtered_endpoints = {k: v for k, v in self.endpoint_status.items() if v == 1}
-        if len(filtered_endpoints) == 0:
+    def choose_endpoint(self, model):
+        print("choose_endpoint")
+        print(model)
+        https_endpoints = self.get_https_endpoint(model)
+        libp2p_endpoints = self.get_libp2p_endpoint(model)
+        filtered_libp2p_endpoints = {k: v for k, v in self.endpoint_status.items() if v == 1}
+        filtered_https_endpoints = {k: v for k, v in self.endpoint_status.items() if v == 1}
+        if len(filtered_https_endpoints) == 0 and len(filtered_libp2p_endpoints) == 0:
             return None
         else:
-            return filtered_endpoints
+            return {
+                "https": filtered_https_endpoints,
+                "libp2p": filtered_libp2p_endpoints
+            }
         
     def https_index_cid(self, samples, endpoint):
         endpoint_chunk_size = self.https_endpoints[endpoint]
