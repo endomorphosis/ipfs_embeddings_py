@@ -84,7 +84,7 @@ class ipfs_embeddings_py:
                     return endpoint
         return None
 
-    def index_ipfs(self, samples):
+    def index_cid(self, samples):
         if type(samples) is None:
             raise ValueError("samples must be a list")
         if type(samples) is str:
