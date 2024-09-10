@@ -34,7 +34,7 @@ class ipfs_multiformats_py:
                 filename = f.name
                 file_content_hash = self.get_file_sha256(filename)
                 mh = self.get_multihash_sha256(file_content_hash)
-                cid = CID('base32', 'raw', mh)
+                cid = CID('base32', 1, 'raw', mh)
         return str(cid)
 
 if __name__ == '__main__':
