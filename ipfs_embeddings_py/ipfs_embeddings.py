@@ -85,6 +85,7 @@ class ipfs_embeddings_py:
         return None
 
     def index_cid(self, samples):
+        results = []
         if type(samples) is None:
             raise ValueError("samples must be a list")
         if type(samples) is str:
@@ -98,7 +99,8 @@ class ipfs_embeddings_py:
             for this_sample in samples:
                 this_sample_cid = self.multiformats.get_cid(this_sample)
                 self.cid_index[this_sample_cid] = this_sample
-        return None
+                results.append(this_sample_cid)
+        return results
     
     def index_knn(self, samples):
         if type(samples) is None:
