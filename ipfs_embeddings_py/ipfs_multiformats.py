@@ -1,6 +1,8 @@
 import hashlib
 from multiformats import CID, multihash
-
+import tempfile
+import os
+import sys
 class ipfs_multiformats_py:
     def __init__(self, resources, metadata): 
         self.multihash = multihash
@@ -21,11 +23,19 @@ class ipfs_multiformats_py:
 
     # Step 3: Generate CID from Multihash (CIDv1)
     def get_cid(self, file_path):
-        file_content_hash = self.get_file_sha256(file_path)
-        mh = self.get_multihash_sha256(file_content_hash)
-        cid = CID('base32', 'raw', mh)
+        if os.path.isfile(file_path) == True:
+            absolute_path = os.path.abspath(file_path)
+            file_content_hash = self.get_file_sha256(file_path)
+            mh = self.get_multihash_sha256(file_content_hash)
+            cid = CID('base32', 'raw', mh)
+        else:
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+                f.write(file_path)
+                filename = f.name
+                file_content_hash = self.get_file_sha256(filename)
+                mh = self.get_multihash_sha256(file_content_hash)
+                cid = CID('base32', 'raw', mh)
         return str(cid)
-    
 
 if __name__ == '__main__':
     ipfs_multiformats = ipfs_multiformats_py()
