@@ -112,14 +112,20 @@ class ipfs_embeddings_py:
         if type(samples) is iter:
             for this_sample in samples:
                 chosen_endpoint = self.choose_endpoint(model)
-                this_sample = {"inputs": i}
+                this_sample_len = len(this_sample)
+                if this_sample_len > 8192:
+                    this_sample = this_sample[:8192]
+                this_sample = {"inputs": this_sample}
                 query_response = self.make_post_request(chosen_endpoint, this_sample)
                 knn_stack.append(query_response)
             pass
         if type(samples) is list:
             for this_sample in samples:
                 chosen_endpoint = self.choose_endpoint(model)
-                this_sample = {"inputs": i}
+                this_sample_len = len(this_sample)
+                if this_sample_len > 8192:
+                    this_sample = this_sample[:8192]
+                this_sample = {"inputs": this_sample}
                 query_response = self.make_post_request(chosen_endpoint, this_sample)
                 knn_stack.append(query_response)
             pass
@@ -161,7 +167,7 @@ class ipfs_embeddings_py:
             raise ValueError("samples must be a list")
 
 
-    def make_post_request(endpoint, data):
+    def make_post_request(self, endpoint, data):
         headers = {'Content-Type': 'application/json'}
         response = requests.post(endpoint, headers=headers, json=data)
         return response.json()
