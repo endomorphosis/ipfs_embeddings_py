@@ -103,6 +103,7 @@ class ipfs_embeddings_py:
         return results
     
     def index_knn(self, samples, model):
+        knn_stack = []
         if type(samples) is None:
             raise ValueError("samples must be a list")
         if type(samples) is str:
@@ -110,15 +111,20 @@ class ipfs_embeddings_py:
         if type(samples) is iter:
             for this_sample in samples:
                 chosen_endpoint = self.choose_endpoint(model)
-                this_sample_knn = self.https_index_cid(this_sample, chosen_endpoint)
-                self.knn_index[this_sample_knn] = this_sample
+                query_request = "curl " +  chosen_endpoint + " -X POST     -d '{\"inputs\": " + this_sample +  " }' -H 'Content-Type: application/json'"
+                query_response = subprocess.check_output(query_request, shell=True).decode("utf-8")
+                query_response = json.loads(query_response)
+                knn_stack.append(query_response)
             pass
         if type(samples) is list:
             for this_sample in samples:
                 chosen_endpoint = self.choose_endpoint(model)
-                this_sample_knn = self.https_index_cid(this_sample, chosen_endpoint)
-                self.knn_index[this_sample_knn] = this_sample
-        return this_sample_knn
+                query_request = "curl " +  chosen_endpoint + " -X POST     -d '{\"inputs\": " + this_sample +  " }' -H 'Content-Type: application/json'"
+                query_response = subprocess.check_output(query_request, shell=True).decode("utf-8")
+                query_response = json.loads(query_response)
+                knn_stack.append(query_response)
+            pass
+        return knn_stack
     
     def queue_index_cid(self, samples):
         if type(samples) is None:
