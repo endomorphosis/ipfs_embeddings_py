@@ -102,21 +102,23 @@ class ipfs_embeddings_py:
                 results.append(this_sample_cid)
         return results
     
-    def index_knn(self, samples):
+    def index_knn(self, samples, model):
         if type(samples) is None:
             raise ValueError("samples must be a list")
         if type(samples) is str:
             samples = [samples]
         if type(samples) is iter:
             for this_sample in samples:
-                this_sample_cid = self.multiformats.get_cid(this_sample)
-                self.knn_index[this_sample_cid] = this_sample
+                chosen_endpoint = self.choose_endpoint(model)
+                this_sample_knn = self.https_index_cid(this_sample, chosen_endpoint)
+                self.knn_index[this_sample_knn] = this_sample
             pass
         if type(samples) is list:
             for this_sample in samples:
-                this_sample_cid = self.multiformats.get_cid(this_sample)
-                self.knn_index[this_sample_cid] = this_sample
-        return None
+                chosen_endpoint = self.choose_endpoint(model)
+                this_sample_knn = self.https_index_cid(this_sample, chosen_endpoint)
+                self.knn_index[this_sample_knn] = this_sample
+        return this_sample_knn
     
     def queue_index_cid(self, samples):
         if type(samples) is None:
