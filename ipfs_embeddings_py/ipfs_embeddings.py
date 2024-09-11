@@ -1,5 +1,4 @@
-from .ipfs_multiformats import *
-from .ipfs_only_hash import *
+from . import ipfs_multiformats
 import requests
 import subprocess
 import os
