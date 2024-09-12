@@ -103,7 +103,27 @@ class ipfs_embeddings_py:
                 results.append(this_sample_cid)
         return results
     
-    def index_knn(self, samples, model):
+    def max_batch_size(self, model, endpoint=None):
+        embed_fail = False
+        exponent = 1
+        batch = []
+        batch_size = 2**exponent
+        while embed_fail == False:
+            while len(batch) < batch_size:
+                batch.append("Hello World")
+            try:
+                embeddings = self.index_knn(batch, model, endpoint)
+                if not isinstance(embeddings[0], list):
+                    raise Exception("Embeddings not returned as list")
+                embed_fail = False
+                exponent += 1
+                batch_size = 2**exponent
+            except:
+                embed_fail = True
+                pass
+        return 2**(exponent-1)
+    
+    def index_knn(self, samples, model, chosen_endpoint=None):
         knn_stack = []
         if type(samples) is None:
             raise ValueError("samples must be a list")
@@ -111,7 +131,8 @@ class ipfs_embeddings_py:
             samples = [samples]
         if type(samples) is iter:
             for this_sample in samples:
-                chosen_endpoint = self.choose_endpoint(model)
+                if chosen_endpoint is None:
+                    chosen_endpoint = self.choose_endpoint(model)
                 this_sample_len = len(this_sample)
                 if this_sample_len > 8192:
                     this_sample = this_sample[:8192]
@@ -121,7 +142,8 @@ class ipfs_embeddings_py:
             pass
         if type(samples) is list:
             for this_sample in samples:
-                chosen_endpoint = self.choose_endpoint(model)
+                if chosen_endpoint is None:
+                    chosen_endpoint = self.choose_endpoint(model)
                 this_sample_len = len(this_sample)
                 if this_sample_len > 8192:
                     this_sample = this_sample[:8192]
