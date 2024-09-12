@@ -22,6 +22,7 @@ class ipfs_embeddings_py:
         self.choose_endpoint = self.choose_endpoint
         self.pop_index_knn = self.pop_index_knn
         self.pop_index_cid = self.pop_index_cid
+        self.max_batch_size = self.max_batch_size
         return None
     
     def load_index(self, index):

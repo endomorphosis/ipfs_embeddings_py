@@ -3,34 +3,27 @@ from datasets import load_dataset
 import ipfs_embeddings_py.ipfs_embeddings as ipfs_embeddings
 
 class test_ipfs_embeddings:
-    def __init__(self):
+    def __init__(self, resources, metadata):
         resources = {}
         metadata = {}
         self.dataset = {}
-        self.ipfs_embeddings = ipfs_embeddings.ipfs_embeddings_py(resources, metadata)
+        self.ipfs_embeddings_py = ipfs_embeddings.ipfs_embeddings_py(resources, metadata)
+        self.ipfs_embeddings_py.add_https_endpoint("BAAI/bge-m3", "http://62.146.169.111:80/embed",1)
         return None
     
-    def process(self, dataset, output):
-        num_rows = dataset.num_rows['data']
-        processed_data = {}
-        for i in range(num_rows):
-            row = dataset['data'][i]
-            data = row['data']
-            processed_data[row] = self.ipfs_embeddings.add_tei_https_queue(data, self.callback())
-        return None
-
-    def callback(self, data):
-        return None
-
-
-    def test(self):
-        load_these_datasets = ["laion/Wikipedia-X", "laion/Wikipedia-X-Full", "laion/Wikipedia-X-Concat", "laion/Wikipedia-X-M3"]
-        self.dataset = load_dataset(load_these_datasets[0])
-        print(len(self.dataset))
-        self.ipfs_embeddings
-        return None
+    def test(self, model, endpoint):
+        batch_size = self.ipfs_embeddings_py.max_batch_size(model, endpoint)
+        return batch_size
     
 if __name__ == '__main__':
-    test = test_ipfs_embeddings()
-    test.test()
+    metadata = {
+        "dataset": "laion/Wikipedia-X-Concat",
+        "faiss_index": "laion/Wikipedia-M3",
+        "model": "BAAI/bge-m3"
+    }
+    resources = {
+        "https_endpoints": [["BAAI/bge-m3", "http://62.146.169.111:80/embed",1]]
+    }
+    test = test_ipfs_embeddings(resources, metadata)
+    test.test(metadata["model"], resources["https_endpoints"][0][1])
     print("Test passed")
