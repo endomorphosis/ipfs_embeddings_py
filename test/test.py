@@ -1,13 +1,14 @@
 
 from datasets import load_dataset
-import ipfs_embeddings_py.ipfs_embeddings as ipfs_embeddings
-
+import os
+parent_dir = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+from ipfs_embeddings_py import ipfs_embeddings_py
 class test_ipfs_embeddings:
     def __init__(self, resources, metadata):
         resources = {}
         metadata = {}
         self.dataset = {}
-        self.ipfs_embeddings_py = ipfs_embeddings.ipfs_embeddings_py(resources, metadata)
+        self.ipfs_embeddings_py = ipfs_embeddings_py(resources, metadata)
         self.ipfs_embeddings_py.add_https_endpoint("BAAI/bge-m3", "http://62.146.169.111:80/embed",1)
         return None
     
@@ -25,5 +26,6 @@ if __name__ == '__main__':
         "https_endpoints": [["BAAI/bge-m3", "http://62.146.169.111:80/embed",1]]
     }
     test = test_ipfs_embeddings(resources, metadata)
-    test.test(metadata["model"], resources["https_endpoints"][0][1])
+    results = test.test(metadata["model"], resources["https_endpoints"][0][1])
     print("Test passed")
+    print(results)
