@@ -105,6 +105,7 @@ class ipfs_embeddings_py:
         return results
     
     def max_batch_size(self, model, endpoint=None):
+        print("max_batch_size")
         embed_fail = False
         exponent = 1
         batch = []
