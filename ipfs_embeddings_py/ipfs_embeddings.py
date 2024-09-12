@@ -280,9 +280,8 @@ class ipfs_embeddings_py:
         }
 
         for data in test_data:
-            test_cid_index = self.index_ipfs(data)
+            test_cid_index = self.index_cid(data)
             test_knn_index = self.index_knn(data)
-        
 
         print("test")
 
@@ -292,10 +291,3 @@ class ipfs_embeddings_py:
     def setStatus(self,endpoint , status):
         self.endpoint_status[endpoint] = status
         return None
-
-if __name__ == '__main__':
-    resources = {}
-    metedata = {}
-    ipfs_embeddings = ipfs_embeddings_py(resources, metedata)
-    ipfs_embeddings.test()
-    print("test")
