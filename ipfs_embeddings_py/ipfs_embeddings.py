@@ -143,15 +143,21 @@ class ipfs_embeddings_py:
                 knn_stack.append(query_response)
             pass
         if type(samples) is list:
-            for this_sample in samples:
-                if chosen_endpoint is None:
-                    chosen_endpoint = self.choose_endpoint(model)
-                this_sample_len = len(this_sample)
-                if this_sample_len > 8192:
-                    this_sample = this_sample[:8192]
-                this_sample = {"inputs": this_sample}
-                query_response = self.make_post_request(chosen_endpoint, this_sample)
-                knn_stack.append(query_response)
+            if chosen_endpoint is None:
+                chosen_endpoint = self.choose_endpoint(model)
+            this_query = {"inputs": samples}
+            query_response = self.make_post_request(chosen_endpoint, this_query)
+            if isinstance(query_response, dict) and "error" in query_response.keys():
+                raise Exception("error: " + query_response["error"])
+            else:
+                knn_stack = query_response
+            # for this_sample in samples:
+            #     this_sample_len = len(this_sample)
+            #     if this_sample_len > 8192:
+            #         this_sample = this_sample[:8192]
+            #     this_sample = {"inputs": this_sample}
+            #     query_response = self.make_post_request(chosen_endpoint, this_sample)
+            #     knn_stack.append(query_response)
             pass
         return knn_stack
     
