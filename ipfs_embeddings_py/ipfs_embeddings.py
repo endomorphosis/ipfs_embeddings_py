@@ -29,21 +29,21 @@ class ipfs_embeddings_py:
         self.index = index
         return None 
     
-    def add_https_endpoint(self, model, endpoint, batch_size):
+    def add_https_endpoint(self, model, endpoint, context_length):
         if model not in self.https_endpoints:
             self.https_endpoints[model] = {}
             self.endpoint_status[endpoint] = 1
         if endpoint not in self.https_endpoints[model]:  
-            self.https_endpoints[model][endpoint] = batch_size
+            self.https_endpoints[model][endpoint] = context_length
             self.endpoint_status[endpoint] = 1
         return None
     
-    def add_libp2p_endpoint(self, model, endpoint, batch_size):
+    def add_libp2p_endpoint(self, model, endpoint, context_length):
         if model not in self.libp2p_endpoints:
             self.libp2p_endpoints[model] = {}
             self.endpoint_status[endpoint] = 1
         if endpoint not in self.libp2p_endpoints[model]:  
-            self.libp2p_endpoints[model][endpoint] = batch_size
+            self.libp2p_endpoints[model][endpoint] = context_length
             self.endpoint_status[endpoint] = 1
         return None
     
