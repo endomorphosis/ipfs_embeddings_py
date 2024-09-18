@@ -126,8 +126,7 @@ class ipfs_embeddings_py:
                 results.append(this_sample_cid)
         return results
     
-    def max_batch_size(self, model, endpoint=None):
-        print("max_batch_size")
+    async def max_batch_size(self, model, endpoint=None):
         embed_fail = False
         exponent = 1
         batch = []
@@ -136,7 +135,7 @@ class ipfs_embeddings_py:
             while len(batch) < batch_size:
                 batch.append("Hello World")
             try:
-                embeddings = self.index_knn(batch, model, endpoint)
+                embeddings = await self.index_knn(batch, model, endpoint)
                 if not isinstance(embeddings[0], list):
                     raise Exception("Embeddings not returned as list")
                 embed_fail = False
@@ -218,8 +217,6 @@ class ipfs_embeddings_py:
                 return await response.json()
 
     def choose_endpoint(self, model):
-        print("choose_endpoint")
-        print(model)
         https_endpoints = self.get_https_endpoint(model)
         libp2p_endpoints = self.get_libp2p_endpoint(model)
         filtered_libp2p_endpoints = {k: v for k, v in self.endpoint_status.items() if v == 1 and libp2p_endpoints is not None and k in list(libp2p_endpoints.keys())}
@@ -232,6 +229,7 @@ class ipfs_embeddings_py:
                 this_endpoint = random.choice(list(filtered_https_endpoints.keys()))
             elif len(list(filtered_libp2p_endpoints.keys())) > 0:
                 this_endpoint = random.choice(list(filtered_https_endpoints.keys()))
+            print("chosen endpoint for " + model + " is " + this_endpoint)
             return this_endpoint
         
     def https_index_cid(self, samples, endpoint):
@@ -351,13 +349,8 @@ class ipfs_embeddings_py:
     async def save_to_disk(self, dataset, dst_path, models):
         self.saved = False
         while True:
-            await asyncio.sleep(30)
-            empty = True
-            for queue in self.queues.values():
-                if not queue.empty():
-                    empty = False
-
-            if empty == True and self.saved == False:   
+            await asyncio.sleep(300)
+            if self.saved == False:   
                 self.new_dataset.save_to_disk(f"{dst_path}/{dataset.replace("/","---")}.arrow")
                 self.new_dataset.to_parquet(f"{dst_path}/{dataset.replace("/","---")}.parquet")
                 for model in models:
