@@ -211,16 +211,11 @@ class ipfs_embeddings_py:
             raise ValueError("samples must be a list")
 
 
-    def make_post_request(self, endpoint, data):
+    async def make_post_request(self, endpoint, data):
         headers = {'Content-Type': 'application/json'}
-        # sanitize data
-        # for input in range(len(data["inputs"])):
-        #     this_input = data["inputs"][input]
-        #     if isinstance(this_input, str):
-        #         data["inputs"][input] = this_input
-        print(data)
-        response = requests.post(endpoint, headers=headers, json=data)
-        return response.json()
+        async with ClientSession() as session:
+            async with session.post(endpoint, headers=headers, json=data) as response:
+                return await response.json()
 
     def choose_endpoint(self, model):
         print("choose_endpoint")
@@ -296,27 +291,9 @@ class ipfs_embeddings_py:
         self.knn_queue = iter(knn_queue_list)
         return results
 
-
-    def test(self):
-        self.https_endpoints("BAAI/bge-m3", "62.146.169.111:80/embed",1)
-        self.https_endpoints("BAAI/bge-m3", "62.146.169.111:8080/embed",1)
-        self.https_endpoints("BAAI/bge-m3", "62.146.168.111:8081/embed",1)
-        test_knn_index = {}
-        test_cid_index = {}
-        test_data = {
-            "test1", "test2", "test3"
-        }
-
-        for data in test_data:
-            test_cid_index = self.index_cid(data)
-            test_knn_index = self.index_knn(data)
-
-        print("test")
-
     async def async_generator(self, iterable):
         for item in iterable:
             yield item
-
 
     async def consumer(self, queue, column, batch_size, model_name):
         batch = []
@@ -332,6 +309,7 @@ class ipfs_embeddings_py:
                     self.index[model_name] = self.index[model_name].add_item({"cid": batch[i]["cid"], "embedding": results[i]})
                 batch = []  # Clear batch after sending
                 self.saved = False
+            queue.task_done()
         return None
 
     async def producer(self, dataset_stream, column, queues):
@@ -351,7 +329,6 @@ class ipfs_embeddings_py:
                     await queue.put(item)  # Non-blocking put
         return None
 
-
     async def send_batch(self, batch, column, model_name):
         print(f"Sending batch of size {len(batch)} to model {model_name}")
         endpoint = list(self.https_endpoints[model_name].keys())[0]
@@ -368,13 +345,13 @@ class ipfs_embeddings_py:
                 new_batch.append(unencode_item)
             else:
                 new_batch.append(item[column])
-        results = self.index_knn(new_batch, model_name)
+        results = await self.index_knn(new_batch, model_name)
         return results
 
     async def save_to_disk(self, dataset, dst_path, models):
         self.saved = False
         while True:
-            await asyncio.sleep(300)
+            await asyncio.sleep(30)
             empty = True
             for queue in self.queues.values():
                 if not queue.empty():
@@ -395,3 +372,4 @@ class ipfs_embeddings_py:
     def setStatus(self,endpoint , status):
         self.endpoint_status[endpoint] = status
         return None
+    
