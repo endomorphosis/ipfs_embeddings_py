@@ -156,7 +156,10 @@ class ipfs_embeddings_py:
             if chosen_endpoint is None:
                 chosen_endpoint = self.choose_endpoint(model)
             this_query = {"inputs": samples}
-            query_response = self.make_post_request(chosen_endpoint, this_query)
+            try:
+                query_response = self.make_post_request(chosen_endpoint, this_query)
+            except:
+                raise Exception("error: " + query_response["error"])
             if isinstance(query_response, dict) and "error" in query_response.keys():
                 raise Exception("error: " + query_response["error"])
             else:
@@ -166,7 +169,10 @@ class ipfs_embeddings_py:
             if chosen_endpoint is None:
                 chosen_endpoint = self.choose_endpoint(model)
             this_query = {"inputs": samples}
-            query_response = self.make_post_request(chosen_endpoint, this_query)
+            try:
+                query_response = self.make_post_request(chosen_endpoint, this_query)
+            except Exception as e:
+                raise Exception(e)
             if isinstance(query_response, dict) and "error" in query_response.keys():
                 raise Exception("error: " + query_response["error"])
             else:
@@ -214,6 +220,8 @@ class ipfs_embeddings_py:
         headers = {'Content-Type': 'application/json'}
         async with ClientSession() as session:
             async with session.post(endpoint, headers=headers, json=data) as response:
+                if response.status != 200:
+                    return ValueError(response)
                 return await response.json()
 
     def choose_endpoint(self, model):
@@ -329,7 +337,7 @@ class ipfs_embeddings_py:
 
     async def send_batch(self, batch, column, model_name):
         print(f"Sending batch of size {len(batch)} to model {model_name}")
-        endpoint = list(self.https_endpoints[model_name].keys())[0]
+        endpoint = self.choose_endpoint(model_name)
         model_context_length = self.https_endpoints[model_name][endpoint]
         new_batch = []
         for item in batch:
@@ -343,17 +351,41 @@ class ipfs_embeddings_py:
                 new_batch.append(unencode_item)
             else:
                 new_batch.append(item[column])
-        results = await self.index_knn(new_batch, model_name)
-        return results
+        results = None
+        try:
+            results = await self.index_knn(new_batch, model_name, endpoint)
+        except Exception as e:
+            raise e
+        if isinstance(results, ValueError):
+            error = results.args[0]
+            if error.status == 413:
+                if error.reason == "Payload Too Large":
+                    error_content = error.content._buffer[0].decode("utf-8")
+                    error_content = json.loads(error_content)
+                    if "error" in error_content.keys() and "error_type" in error_content.keys():
+                        if "Validation" in error_content["error_type"] and "must have less than" in error_content["error"]:
+                            expected = int(error_content["error"].split("must have less than ")[1].split(" tokens")[0])
+                            given = int(error_content["error"].split("Given: ")[1])
+                            difference = given - expected
+                            self.https_endpoints[model_name][endpoint] = self.https_endpoints[model_name][endpoint] - difference
+                            for item in new_batch:
+                                index = new_batch.index(item)
+                                item = item[:self.https_endpoints[model_name][endpoint]]
+                                new_batch[index] = item
+                            results = await self.index_knn(new_batch, model_name, endpoint)
+                            return results
+            raise Exception("error: " + error_content["error"])
+        else:
+            return results
 
     async def save_to_disk(self, dataset, dst_path, models):
         self.saved = False
         while True:
             await asyncio.sleep(600)
             if self.saved == False:
-                self.new_dataset.to_parquet(f"{dst_path}/{dataset.replace("/","---")}.parquet")   
+                self.new_dataset.to_parquet(dst_path+"/"+dataset.replace("/","---")+".parquet")   
                 for model in models:
-                    self.index[model].to_parquet(f"{dst_path}/{model.replace("/","---")}.parquet")
+                    self.index[model].to_parquet(dst_path+"/"+model.replace("/","---")+".parquet")
                 self.saved = True
         return None
 
