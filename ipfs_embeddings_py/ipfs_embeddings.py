@@ -178,7 +178,7 @@ class ipfs_embeddings_py:
             else:
                 knn_stack = query_response
             pass
-        return knn_stack
+        return knn_stack    
     
     def queue_index_cid(self, samples):
         if type(samples) is None:
@@ -216,7 +216,15 @@ class ipfs_embeddings_py:
             raise ValueError("samples must be a list")
 
 
-    async def make_post_request(self, endpoint, data):
+    def make_post_request(self, endpoint, data):
+        headers = {'Content-Type': 'application/json'}
+        with ClientSession() as session:
+            with session.post(endpoint, headers=headers, json=data) as response:
+                if response.status != 200:
+                    return ValueError(response)
+                return response.json()
+
+    async def make_async_post_request(self, endpoint, data):
         headers = {'Content-Type': 'application/json'}
         async with ClientSession() as session:
             async with session.post(endpoint, headers=headers, json=data) as response:
@@ -261,7 +269,7 @@ class ipfs_embeddings_py:
         json_queue_knn = json.dumps(queue_knn)
         for i in queue_knn:
             this_sample = {"inputs": i}
-            query_response = self.make_post_request(selected_endpoint, this_sample)
+            query_response = self.make_async_post_request(selected_endpoint, this_sample)
             knn_stack.append(query_response)
         return knn_stack
     
