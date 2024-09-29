@@ -225,7 +225,7 @@ class ipfs_embeddings_py:
 
     async def make_post_request(self, endpoint, data):
         headers = {'Content-Type': 'application/json'}
-        timeout = ClientTimeout(total=120) 
+        timeout = ClientTimeout(total=300) 
         async with ClientSession(timeout=timeout) as session:
             async with session.post(endpoint, headers=headers, json=data) as response:
                 if response.status != 200:
@@ -310,10 +310,14 @@ class ipfs_embeddings_py:
             models = self.queues.keys()
             for model, model_queues in queues.items():
                 # Assign to the endpoint with the smallest queue
-                if this_cid not in self.all_cid_list[model]:
-                    endpoint, queue = min(model_queues.items(), key=lambda x: x[1].qsize())
-                    queue.put_nowait(item)  # Non-blocking put
-
+                if len(model_queues) > 0:
+                    if this_cid not in self.all_cid_list[model]:
+                        endpoint, queue = min(model_queues.items(), key=lambda x: x[1].qsize())
+                        queue.put_nowait(item)  # Non-blocking put
+                else:
+                    random_queue = random.choice(list(queues[model].values()))
+                    await random_queue.put_no_wait(item)
+                    
     async def send_batch_to_endpoint(self, batch, column, model_name, endpoint):
         print(f"Sending batch of size {len(batch)} to model {model_name} at endpoint {endpoint}")
         model_context_length = self.https_endpoints[model_name][endpoint]
