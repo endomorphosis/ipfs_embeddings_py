@@ -5,7 +5,7 @@ import json
 import random
 import datasets
 import asyncio
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 from datasets import load_dataset
 import datasets
 from datasets import Dataset, concatenate_datasets, load_dataset
@@ -225,7 +225,8 @@ class ipfs_embeddings_py:
 
     async def make_post_request(self, endpoint, data):
         headers = {'Content-Type': 'application/json'}
-        async with ClientSession() as session:
+        timeout = ClientTimeout(total=120) 
+        async with ClientSession(timeout=timeout) as session:
             async with session.post(endpoint, headers=headers, json=data) as response:
                 if response.status != 200:
                     return ValueError(response)
@@ -255,7 +256,6 @@ class ipfs_embeddings_py:
     async def async_generator(self, iterable):
         for item in iterable:
             yield item
-
     async def consumer(self, queue, column, batch_size, model_name, endpoint):
         print("consumer started")
         batch = []
@@ -284,10 +284,6 @@ class ipfs_embeddings_py:
             if len(tasks) >= 1:
                 await asyncio.gather(*tasks)
                 tasks = []
-            # Print the size of all queues
-            # for model, endpoints in queues.items():
-            #     for endpoint, queue in endpoints.items():
-            #         print(f"Queue size for model {model} at endpoint {endpoint}: {queue.qsize()}")
         if tasks:
             await asyncio.gather(*tasks)
         return None
@@ -374,12 +370,13 @@ class ipfs_embeddings_py:
     async def save_to_disk(self, dataset, dst_path, models):
         self.saved = False
         while True:
-            await asyncio.sleep(60)
+            await asyncio.sleep(600)
             if self.saved == False:
                 if self.caches["new_dataset"] and len(self.caches["new_dataset"]["items"]) > 0:
                     tmp_dataset = datasets.Dataset.from_dict(self.caches["new_dataset"])
                     self.caches["new_dataset"] = {"items" : []}
                     self.new_dataset = concatenate_datasets([self.new_dataset, tmp_dataset])
+                    print("Saved "+ str(len(tmp_dataset)) + " items to disk for dataset " + dataset + " at " + dst_path)
                 self.new_dataset.to_parquet(dst_path+"/"+dataset.replace("/","---")+".parquet")   
                 for model in models:
                     if model in self.caches.keys():
@@ -387,7 +384,8 @@ class ipfs_embeddings_py:
                             tmp_dataset = datasets.Dataset.from_dict(self.caches[model])
                             self.caches[model] = {"items" : []}
                             self.index[model] = concatenate_datasets([self.index[model], tmp_dataset])
-                    self.index[model].to_parquet(dst_path+"/"+model.replace("/","---")+".parquet")
+                            self.index[model].to_parquet(dst_path+"/"+model.replace("/","---")+".parquet")
+                            print("Saved "+ str(len(tmp_dataset)) + " items to disk for model " + model + " at " + dst_path)
                 self.saved = True
         return None 
 
