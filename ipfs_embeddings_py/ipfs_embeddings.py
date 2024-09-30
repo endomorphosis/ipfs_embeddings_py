@@ -185,12 +185,22 @@ class ipfs_embeddings_py:
                                             return await self.max_batch_size(model, endpoint)
                         if "502" in str(fail_reason):
                             self.endpoint_status[endpoint] = 0
+                            del self.https_endpoints[model][endpoint]
+                            del self.queues[model][endpoint]
                             return 0
                         if "504" in str(fail_reason):
                             self.endpoint_status[endpoint] = 0
+                            del self.https_endpoints[model][endpoint]
+                            del self.queues[model][endpoint]
+                            return 0
+                        if "404" in str(fail_reason):
+                            self.endpoint_status[endpoint] = 0
+                            del self.https_endpoints[model][endpoint]
+                            del self.queues[model][endpoint]
                             return 0
                         if "400" in str(fail_reason):
                             return await self.max_batch_size(model, endpoint)
+                        
                     raise Exception(embeddings)
                 exponent += 1
                 batch_size = 2**exponent
@@ -213,11 +223,22 @@ class ipfs_embeddings_py:
                                         results = await self.max_batch_size(model, endpoint)
                                         return results
                         pass
+                    if "400" in str(fail_reason):
+                        return await self.max_batch_size(model, endpoint)
+                    if "404" in str(fail_reason):
+                        self.endpoint_status[endpoint] = 0
+                        del self.https_endpoints[model][endpoint]
+                        del self.queues[model][endpoint]
+                        return 0
                     if "504" in str(fail_reason):
                         self.endpoint_status[endpoint] = 0
+                        del self.https_endpoints[model][endpoint]
+                        del self.queues[model][endpoint]
                         return 0
                     if "502" in str(fail_reason):
                         self.endpoint_status[endpoint] = 0
+                        del self.https_endpoints[model][endpoint]
+                        del self.queues[model][endpoint]
                         return 0
                 pass
         self.endpoint_status[endpoint] = 2**(exponent-1)
@@ -340,13 +361,8 @@ class ipfs_embeddings_py:
             cid_list.add(this_cid)
             if this_cid not in self.all_cid_list["new_dataset"]:
                 self.caches["new_dataset"]["items"].append(item)
-            # new_dataset = new_dataset.add_item(item)
-            # print(f"Added item with CID {this_cid} to new_dataset.")
             models = self.queues.keys()
             for model, model_queues in queues.items():
-                # Assign to the endpoint with the smallest queue
-                # while len(model_queues) < 1:
-                #     await asyncio.sleep(1)
                 if len(model_queues) > 0:
                     if this_cid not in self.all_cid_list[model]:
                         endpoint, queue = min(model_queues.items(), key=lambda x: x[1].qsize())
@@ -394,7 +410,7 @@ class ipfs_embeddings_py:
                         if "Validation" in error_content["error_type"] and "cannot be empty":
                             print("error: " + error_content["error"])
                             return None
-            elif error.status == 504 or error.status == 502:
+            elif error.status == 504 or error.status == 502 or error.status == 404:
                 self.endpoint_status[endpoint] = 0
                 new_endpoint = self.choose_endpoint(model_name)
                 if new_endpoint:
