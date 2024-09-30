@@ -36,6 +36,30 @@ class ipfs_embeddings_py:
         self.tokenizer = {}
         self.endpoint_status = {}
         self.new_dataset = {}
+        self.index_dataset = self.index_dataset
+        self.add_https_endpoint = self.add_https_endpoint
+        self.add_libp2p_endpoint = self.add_libp2p_endpoint
+        self.rm_https_endpoint = self.rm_https_endpoint
+        self.rm_libp2p_endpoint = self.rm_libp2p_endpoint
+        self.get_https_endpoint = self.get_https_endpoint
+        self.get_libp2p_endpoint = self.get_libp2p_endpoint
+        self.request_https_endpoint = self.request_https_endpoint
+        self.index_knn = self.index_knn
+        self.make_post_request = self.make_post_request
+        self.choose_endpoint = self.choose_endpoint
+        self.get_endpoints = self.get_endpoints
+        self.max_batch_size = self.max_batch_size
+        self.consumer = self.consumer
+        self.producer = self.producer
+        self.process_item = self.process_item
+        self.save_to_disk = self.save_to_disk
+        self.status = self.status
+        self.setStatus = self.setStatus
+        self.index_cid = self.index_cid
+        self.load_index = self.load_index
+        self.async_generator = self.async_generator
+        self.send_batch_to_endpoint = self.send_batch_to_endpoint
+        self.save_to_disk = self.save_to_disk
         self.saved = False  # Added missing attribute
         # Initialize endpoints
         for endpoint_info in resources.get('https_endpoints', []):
