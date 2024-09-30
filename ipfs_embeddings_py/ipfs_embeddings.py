@@ -77,6 +77,11 @@ class ipfs_embeddings_py:
         self.https_endpoints[model][endpoint] = context_length
         # Initialize endpoint status with context_length as max batch size
         self.endpoint_status[endpoint] = context_length
+        if model not in self.queues:
+            self.queues[model] = {}
+        if endpoint not in list(self.queues[model].keys()):
+            self.queues[model][endpoint] = asyncio.Queue()
+        self.endpoint_status[endpoint] = context_length
         return None
 
     def add_libp2p_endpoint(self, model, endpoint, context_length):
@@ -90,12 +95,14 @@ class ipfs_embeddings_py:
         if model in self.https_endpoints and endpoint in self.https_endpoints[model]:
             del self.https_endpoints[model][endpoint]
             del self.endpoint_status[endpoint]
+            del self.queues[model][endpoint]
         return None
 
     def rm_libp2p_endpoint(self, model, endpoint):
         if model in self.libp2p_endpoints and endpoint in self.libp2p_endpoints[model]:
             del self.libp2p_endpoints[model][endpoint]
             del self.endpoint_status[endpoint]
+            del self.queues[model][endpoint]
         return None
 
     def test_tei_https_endpoint(self, model, endpoint):
