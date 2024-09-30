@@ -1,4 +1,4 @@
-from ipfs_multiformats import *
+from .ipfs_multiformats import *
 import requests
 import subprocess
 import json
@@ -36,7 +36,6 @@ class ipfs_embeddings_py:
         self.tokenizer = {}
         self.endpoint_status = {}
         self.new_dataset = {}
-        self.index_dataset = self.index_dataset
         self.add_https_endpoint = self.add_https_endpoint
         self.add_libp2p_endpoint = self.add_libp2p_endpoint
         self.rm_https_endpoint = self.rm_https_endpoint
@@ -60,6 +59,7 @@ class ipfs_embeddings_py:
         self.async_generator = self.async_generator
         self.send_batch_to_endpoint = self.send_batch_to_endpoint
         self.save_to_disk = self.save_to_disk
+        self.index_dataset = self.index_dataset
         self.saved = False  # Added missing attribute
         # Initialize endpoints
         for endpoint_info in resources.get('https_endpoints', []):
