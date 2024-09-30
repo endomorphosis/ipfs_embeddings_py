@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="ipfs_embeddings_py",
-	version='0.0.11',
+	version='0.0.12',
 	packages=[
 		'ipfs_embeddings_py',
 	],

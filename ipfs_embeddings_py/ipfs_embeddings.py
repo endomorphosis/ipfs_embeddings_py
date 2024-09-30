@@ -158,6 +158,8 @@ class ipfs_embeddings_py:
                         if "504" in str(fail_reason):
                             self.endpoint_status[endpoint] = 0
                             return 0
+                        if "400" in str(fail_reason):
+                            return await self.max_batch_size(model, endpoint)
                     raise Exception(embeddings)
                 exponent += 1
                 batch_size = 2**exponent
@@ -215,6 +217,8 @@ class ipfs_embeddings_py:
             try:
                 query_response = await self.make_post_request(chosen_endpoint, this_query)
             except Exception as e:
+                if "413" in str(e):
+                    return ValueError(e)
                 raise Exception(e)
             if isinstance(query_response, dict) and "error" in query_response.keys():
                 raise Exception("error: " + query_response["error"])
@@ -257,7 +261,7 @@ class ipfs_embeddings_py:
         for item in iterable:
             yield item
     async def consumer(self, queue, column, batch_size, model_name, endpoint):
-        print("consumer started")
+        print("consumer started for model " + model_name + " at endpoint " + endpoint)
         batch = []
         if model_name not in self.caches.keys():
             self.caches[model_name] = {"items" : []}
@@ -310,14 +314,13 @@ class ipfs_embeddings_py:
             models = self.queues.keys()
             for model, model_queues in queues.items():
                 # Assign to the endpoint with the smallest queue
+                # while len(model_queues) < 1:
+                #     await asyncio.sleep(1)
                 if len(model_queues) > 0:
                     if this_cid not in self.all_cid_list[model]:
                         endpoint, queue = min(model_queues.items(), key=lambda x: x[1].qsize())
                         queue.put_nowait(item)  # Non-blocking put
-                else:
-                    random_queue = random.choice(list(queues[model].values()))
-                    await random_queue.put_no_wait(item)
-                    
+
     async def send_batch_to_endpoint(self, batch, column, model_name, endpoint):
         print(f"Sending batch of size {len(batch)} to model {model_name} at endpoint {endpoint}")
         model_context_length = self.https_endpoints[model_name][endpoint]
@@ -360,11 +363,17 @@ class ipfs_embeddings_py:
                         if "Validation" in error_content["error_type"] and "cannot be empty":
                             print("error: " + error_content["error"])
                             return None
-            elif error.status == 504:
+            elif error.status == 504 or error.status == 502:
                 self.endpoint_status[endpoint] = 0
-                return await self.send_batch_to_endpoint(batch, column, model_name, endpoint)
-            elif error.status == 502:
-                self.endpoint_status[endpoint] = 0
+                new_endpoint = self.choose_endpoint(model_name)
+                if new_endpoint:
+                    new_queue = self.queues[model_name][new_endpoint]
+                    for item in batch:
+                        await new_queue.put(item)
+                    return await self.send_batch_to_endpoint(batch, column, model_name, new_endpoint)
+                else:
+                    return await self.send_batch_to_endpoint(batch, column, model_name, endpoint)
+            elif error.status == 400:
                 return await self.send_batch_to_endpoint(batch, column, model_name, endpoint)
             raise Exception(error)
         else:
@@ -400,7 +409,7 @@ class ipfs_embeddings_py:
         self.endpoint_status[endpoint] = status
         return None
 
-    async def index_dataset(self, dataset, split, column, dst_path, models):
+    async def index_dataset(self, dataset, split, column, dst_path, models = None):
         if not os.path.exists(dst_path):
             os.makedirs(dst_path)
         self.queues = {}
@@ -408,6 +417,11 @@ class ipfs_embeddings_py:
         self.all_cid_list = {}
         consumer_tasks = {}
         batch_sizes = {}
+        if models is None:
+            models = list(self.https_endpoints.keys())
+        for model in models:
+            if model not in self.queues:
+                self.queues[model] = {}
         if split is None:
             self.dataset = load_dataset(dataset, streaming=True).shuffle(random.randint(0,65536))
         else:
@@ -426,7 +440,6 @@ class ipfs_embeddings_py:
             endpoints = self.get_endpoints(model)
             if not endpoints:
                 continue
-            self.queues[model] = {}
             self.all_cid_list[model] = set()
             model_dst_path = dst_path + "/" + model.replace("/","---") + ".parquet"
             self.all_cid_list[model] = set()
@@ -449,10 +462,7 @@ class ipfs_embeddings_py:
                     self.queues[model][endpoint] = asyncio.Queue()  # Unbounded queue
                     consumer_tasks[(model, endpoint)] = asyncio.create_task(self.consumer(self.queues[model][endpoint], column, batch_size, model, endpoint))
         # Compute common cids
-        common_cids = set(self.all_cid_list["new_dataset"])
-        for cid_list in self.all_cid_list.values():
-            common_cids.intersection_update(cid_list)
-        self.cid_list = common_cids
+        self.cid_list = set.intersection(*self.all_cid_list.values())
         producer_task = asyncio.create_task(self.producer(self.dataset, column, self.queues))        
         save_task = asyncio.create_task(self.save_to_disk(dataset, dst_path, models))
         await asyncio.gather(producer_task, save_task, *consumer_tasks.values())
