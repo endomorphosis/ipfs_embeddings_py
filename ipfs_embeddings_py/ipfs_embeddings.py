@@ -57,13 +57,6 @@ class ipfs_embeddings_py:
         self.resources = resources
         self.metadata = metadata
         self.index_dataset = self.index_dataset
-        self.add_https_endpoint = self.add_https_endpoint
-        self.add_libp2p_endpoint = self.add_libp2p_endpoint
-        self.rm_https_endpoint = self.rm_https_endpoint
-        self.rm_libp2p_endpoint = self.rm_libp2p_endpoint
-        self.get_https_endpoint = self.get_https_endpoint
-        self.get_libp2p_endpoint = self.get_libp2p_endpoint
-        self.request_https_endpoint = self.request_https_endpoint
         self.index_knn = self.index_knn
         self.make_post_request = self.make_post_request
         self.choose_endpoint = self.choose_endpoint
