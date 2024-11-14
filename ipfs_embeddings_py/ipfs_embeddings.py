@@ -256,27 +256,6 @@ class ipfs_embeddings_py:
                 return ValueError(f"Unexpected error: {str(e)}")
         
 
-    def choose_endpoint(self, model):
-        https_endpoints = self.get_https_endpoint(model)
-        libp2p_endpoints = self.get_libp2p_endpoint(model)
-        filtered_libp2p_endpoints = {k: v for k, v in self.endpoint_status.items() if v >= 1 and libp2p_endpoints is not None and k in list(libp2p_endpoints.keys())}
-        filtered_https_endpoints = {k: v for k, v in self.endpoint_status.items() if v >= 1 and https_endpoints is not None and k in list(https_endpoints.keys())}
-        if not filtered_https_endpoints and not filtered_libp2p_endpoints:
-            return None
-        else:
-            this_endpoint = None
-            if len(list(filtered_https_endpoints.keys())) > 0:
-                this_endpoint = random.choice(list(filtered_https_endpoints.keys()))
-            elif len(list(filtered_libp2p_endpoints.keys())) > 0:
-                this_endpoint = random.choice(list(filtered_libp2p_endpoints.keys()))
-            print("chosen endpoint for " + model + " is " + this_endpoint)
-            return this_endpoint
-
-    def get_endpoints(self, model):
-        endpoints_dict = self.https_endpoints.get(model, {})
-        filtered_endpoints = [endpoint for endpoint in endpoints_dict if self.endpoint_status.get(endpoint, 0) >= 1]
-        return filtered_endpoints
-
     async def async_generator(self, iterable):
         for item in iterable:
             yield item
@@ -764,7 +743,6 @@ class ipfs_embeddings_py:
 async def kmeans_cluster_split(self, dataset, split, columns, dst_path, models, max_splits):
         if self.new_dataset is None or isinstance(self.new_dataset, dict):
             await self.load_checkpoints(dataset, split, dst_path, models)
-
         #deduplicate self.new_dataset
         self.unique_dataset = self.new_dataset.map(lambda x: {"cid": x["cid"], "items": x["items"]})
         dataset_sizes = {}
