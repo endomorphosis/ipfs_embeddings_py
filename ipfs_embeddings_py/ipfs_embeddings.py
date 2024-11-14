@@ -30,7 +30,6 @@ class ipfs_embeddings_py:
         self.consumer_task_done = {}
         self.producer_task_done = False
         self.save_to_disk_task_done = False
-
         self.https_endpoints = {}
         self.libp2p_endpoints = {}
         self.index =  {}
@@ -89,60 +88,6 @@ class ipfs_embeddings_py:
     def load_index(self, index):
         self.index = index
         return None 
-
-    def add_https_endpoint(self, model, endpoint, context_length):
-        if model not in self.https_endpoints:
-            self.https_endpoints[model] = {}
-        self.https_endpoints[model][endpoint] = context_length
-        # Initialize endpoint status with context_length as max batch size
-        self.endpoint_status[endpoint] = context_length
-        return None
-
-    def add_libp2p_endpoint(self, model, endpoint, context_length):
-        if model not in self.libp2p_endpoints:
-            self.libp2p_endpoints[model] = {}
-        self.libp2p_endpoints[model][endpoint] = context_length
-        self.endpoint_status[endpoint] = context_length
-        return None
-
-    def rm_https_endpoint(self, model, endpoint):
-        if model in self.https_endpoints and endpoint in self.https_endpoints[model]:
-            del self.https_endpoints[model][endpoint]
-            del self.endpoint_status[endpoint]
-        return None
-
-    def rm_libp2p_endpoint(self, model, endpoint):
-        if model in self.libp2p_endpoints and endpoint in self.libp2p_endpoints[model]:
-            del self.libp2p_endpoints[model][endpoint]
-            del self.endpoint_status[endpoint]
-        return None
-
-    def test_tei_https_endpoint(self, model, endpoint):
-        if model in self.https_endpoints and endpoint in self.https_endpoints[model]:
-            return True
-        return False
-
-    def test_libp2p_endpoint(self, model, endpoint):
-        if model in self.libp2p_endpoints and endpoint in self.libp2p_endpoints[model]:
-            return True
-        return False
-
-    def get_https_endpoint(self, model):
-        if model in self.https_endpoints:
-            return self.https_endpoints[model]
-        return None
-
-    def get_libp2p_endpoint(self, model):
-        if model in self.libp2p_endpoints:
-            return self.libp2p_endpoints[model]
-        return None
-
-    def request_https_endpoint(self, model, batch_size):
-        if model in self.https_endpoints:
-            for endpoint in self.https_endpoints[model]:
-                if self.endpoint_status[endpoint] >= batch_size:
-                    return endpoint
-        return None
 
     def index_cid(self, samples):
         results = []
