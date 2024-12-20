@@ -17,8 +17,10 @@ import datasets
 from transformers import AutoModel
 from datasets import Dataset, concatenate_datasets, load_dataset
 import ipfs_multiformats
-from ipfs_multiformats import *
-from chunker import chunker
+try:
+    from . import chunker
+except:
+    from .chunker import chunker
 import time
 from ipfs_accelerate_py import ipfs_accelerate_py
 
@@ -26,7 +28,7 @@ class ipfs_embeddings_py:
     def __init__(self, resources, metadata):
         self.multiformats = ipfs_multiformats_py(resources, metadata)
         self.datasets = datasets.Dataset
-        self.chunker = chunker(resources, metadata)
+        self.chunker = chunker.chunker(resources, metadata)
         # self.elasticsearch = elasticsearch_kit(resources, metadata)
         self.consumer_task_done = {}
         self.producer_task_done = False
