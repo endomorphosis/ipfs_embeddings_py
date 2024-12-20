@@ -1,10 +1,9 @@
 import bisect
 import logging
 from typing import Dict, List, Optional, Tuple, Union
-from schema import Document
-from llama_index.core.schema import Document
+from .schema import Document
 from transformers import AutoTokenizer
-from huggingface import HuggingFaceEmbedding
+from .huggingface import HuggingFaceEmbedding
 from .node_parser import SemanticSplitterNodeParser
 import pysbd
 # from node_parser import *

@@ -1,10 +1,11 @@
-from setuptools import setup
-
+from setuptools import setup, find_packages
 setup(
     name="ipfs_embeddings_py",
-	version='0.0.19',
+	version='0.0.24',
 	packages=[
 		'ipfs_embeddings_py',
+        'ipfs_embeddings_py.huggingface',
+        'ipfs_embeddings_py.node_parser',
 	],
 	install_requires=[
         'transformers',
