@@ -18,14 +18,15 @@ from transformers import AutoModel
 from datasets import Dataset, concatenate_datasets, load_dataset
 import ipfs_multiformats
 from ipfs_multiformats import *
-from chunker import Chunker
+from chunker import chunker
 import time
+from ipfs_accelerate_py import ipfs_accelerate_py
 
 class ipfs_embeddings_py:
     def __init__(self, resources, metadata):
         self.multiformats = ipfs_multiformats_py(resources, metadata)
         self.datasets = datasets.Dataset
-        self.chunker = Chunker(resources, metadata)
+        self.chunker = chunker(resources, metadata)
         # self.elasticsearch = elasticsearch_kit(resources, metadata)
         self.consumer_task_done = {}
         self.producer_task_done = False
@@ -73,14 +74,16 @@ class ipfs_embeddings_py:
         self.async_generator = self.async_generator
         self.send_batch_to_endpoint = self.send_batch_to_endpoint
         # Initialize endpoints
-        for endpoint_info in resources.get('https_endpoints', []):
-            model, endpoint, context_length = endpoint_info
-            self.add_https_endpoint(model, endpoint, context_length)
         return None
 
     def load_index(self, index):
         self.index = index
         return None 
+    
+    async def init(self):
+        await self.ipfs_accelerate.init()
+        
+    
 
     def index_cid(self, samples):
         results = []
@@ -96,91 +99,6 @@ class ipfs_embeddings_py:
         else:
             raise ValueError("samples must be a list or string")
         return results
-
-    async def max_batch_size(self, model, endpoint=None):
-        embed_fail = False
-        exponent = 1
-        batch = []
-        batch_size = 2**exponent
-        token_length_size = round(self.https_endpoints[model][endpoint] * 0.99)
-        test_tokens = []
-        if model not in self.tokenizer.keys():
-            self.tokenizer[model] = AutoTokenizer.from_pretrained(model, device='cpu')
-        find_token_str = str("z")
-        find_token_int = self.tokenizer[model].encode(find_token_str)
-        if len(find_token_int) == 3:
-            find_token_int = find_token_int[1]
-        elif len(find_token_int) == 2:
-            find_token_int = find_token_int[1]
-        elif len(find_token_int) == 1:
-            find_token_int = find_token_int[0]
-
-        for i in range(token_length_size):
-             test_tokens.append(find_token_int)
-        test_text = self.tokenizer[model].decode(test_tokens)
-        if endpoint is None:
-            endpoint = self.choose_endpoint(model)
-        while not embed_fail:
-            test_batch = []
-            for i in range(batch_size):
-                test_batch.append(test_text)
-            try:
-                embeddings = await self.index_knn(test_batch, model, endpoint)
-                if not isinstance(embeddings, list):
-                    if isinstance(embeddings, ValueError):
-                        fail_reason = embeddings.args[0]
-                        if "413" in str(fail_reason):
-                            error = fail_reason
-                            if error.status == 413:
-                                if error.reason == "Payload Too Large":
-                                    error_content = error.content._buffer[0].decode("utf-8")
-                                    error_content = json.loads(error_content)
-                                    if "error" in error_content.keys() and "error_type" in error_content.keys():
-                                        if "Validation" in error_content["error_type"] and "must have less than" in error_content["error"]:
-                                            expected = int(error_content["error"].split("must have less than ")[1].split(" tokens")[0])
-                                            given = int(error_content["error"].split("Given: ")[1])
-                                            difference = given - expected
-                                            self.https_endpoints[model][endpoint] = token_length_size - difference
-                                            return await self.max_batch_size(model, endpoint)
-                        if "502" in str(fail_reason):
-                            self.endpoint_status[endpoint] = 0
-                            return 0
-                        if "504" in str(fail_reason):
-                            self.endpoint_status[endpoint] = 0
-                            return 0
-                        if "400" in str(fail_reason):
-                            return await self.max_batch_size(model, endpoint)
-                    raise Exception(embeddings)
-                exponent += 1
-                batch_size = 2**exponent
-            except Exception as e:
-                fail_reason = e.args[0]
-                embed_fail = True
-                if isinstance(e, ValueError) or isinstance(e, Exception):
-                    if "413" in str(fail_reason):
-                        error = fail_reason.args[0]
-                        if error.status == 413:
-                            if error.reason == "Payload Too Large":
-                                error_content = error.content._buffer[0].decode("utf-8")
-                                error_content = json.loads(error_content)
-                                if "error" in error_content.keys() and "error_type" in error_content.keys():
-                                    if "Validation" in error_content["error_type"] and "must have less than" in error_content["error"]:
-                                        expected = int(error_content["error"].split("must have less than ")[1].split(" tokens")[0])
-                                        given = int(error_content["error"].split("Given: ")[1])
-                                        difference = given - expected
-                                        self.https_endpoints[model][endpoint] = self.https_endpoints[model][endpoint] - difference
-                                        results = await self.max_batch_size(model, endpoint)
-                                        return results
-                        pass
-                    if "504" in str(fail_reason):
-                        self.endpoint_status[endpoint] = 0
-                        return 0
-                    if "502" in str(fail_reason):
-                        self.endpoint_status[endpoint] = 0
-                        return 0
-                pass
-        self.endpoint_status[endpoint] = 2**(exponent-1)
-        return 2**(exponent-1)
 
     async def index_knn(self, samples, model, chosen_endpoint=None):
         knn_stack = []
@@ -740,7 +658,7 @@ class ipfs_embeddings_py:
             self.embedding_datasets[model].to_parquet(os.path.join(dst_path, dataset.replace("/","___") + "_" + model.replace("/","___") + ".parquet"))
         return None
 
-async def kmeans_cluster_split(self, dataset, split, columns, dst_path, models, max_splits):
+    async def kmeans_cluster_split(self, dataset, split, columns, dst_path, models, max_splits):
         if self.new_dataset is None or isinstance(self.new_dataset, dict):
             await self.load_checkpoints(dataset, split, dst_path, models)
         #deduplicate self.new_dataset
@@ -771,3 +689,82 @@ async def kmeans_cluster_split(self, dataset, split, columns, dst_path, models, 
 
         return None
     
+    async def test(self):
+    
+        return None
+   
+ipfs_accelerate_py = ipfs_accelerate_py    
+    
+if __name__ == "__main__":
+    metadata = {
+        "dataset": "TeraflopAI/Caselaw_Access_Project",
+        "namespace": "TeraflopAI/Caselaw_Access_Project",
+        "column": "text",
+        "split": "train",
+        "models": [
+            "thenlper/gte-small",
+            # "Alibaba-NLP/gte-large-en-v1.5",
+            # "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
+        ],
+        "chunk_settings": {
+            "chunk_size": 512,
+            "n_sentences": 8,
+            "step_size": 256,
+            "method": "fixed",
+            "embed_model": "thenlper/gte-small",
+            "tokenizer": None
+        },
+        "dst_path": "/storage/teraflopai/tmp",
+    }
+    resources = {
+        "local_endpoints": [
+            ["thenlper/gte-small", "cpu", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "cpu", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "cpu", 32768],
+            ["thenlper/gte-small", "cuda:0", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "cuda:0", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "cuda:0", 32768],
+            ["thenlper/gte-small", "cuda:1", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "cuda:1", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "cuda:1", 32768],
+            ["thenlper/gte-small", "openvino", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "openvino", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "openvino", 32768],
+            ["thenlper/gte-small", "llama_cpp", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "llama_cpp", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "llama_cpp", 32768],
+            ["thenlper/gte-small", "ipex", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "ipex", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "ipex", 32768],
+        ],
+        "openvino_endpoints": [
+            # ["neoALI/bge-m3-rag-ov", "https://bge-m3-rag-ov-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-rag-ov/infer", 4095],
+            # ["neoALI/bge-m3-rag-ov", "https://bge-m3-rag-ov-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-rag-ov/infer", 4095],
+            # ["neoALI/bge-m3-rag-ov", "https://bge-m3-rag-ov-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-rag-ov/infer", 4095],
+            # ["neoALI/bge-m3-rag-ov", "https://bge-m3-rag-ov-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-rag-ov/infer", 4095],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx0-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx0/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx1-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx1/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx2-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx2/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx3-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx3/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx4-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx4/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx5-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx5/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx6-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx6/infer", 1024],
+            # ["aapot/bge-m3-onnx", "https://bge-m3-onnx7-endomorphosis-dev.apps.cluster.intel.sandbox1234.opentlc.com/v2/models/bge-m3-onnx7/infer", 1024]
+        ],
+        "tei_endpoints": [
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "http://62.146.169.111:8080/embed-medium", 32768],
+            ["thenlper/gte-small", "http://62.146.169.111:8080/embed-tiny", 512],
+            ["Alibaba-NLP/gte-large-en-v1.5", "http://62.146.169.111:8081/embed-small", 8192],
+            ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "http://62.146.169.111:8081/embed-medium", 32768],
+            ["thenlper/gte-small", "http://62.146.169.111:8081/embed-tiny", 512],
+            # ["Alibaba-NLP/gte-large-en-v1.5", "http://62.146.169.111:8082/embed-small", 8192],
+            # ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "http://62.146.169.111:8082/embed-medium", 32768],
+            # ["thenlper/gte-small", "http://62.146.169.111:8082/embed-tiny", 512],
+            # ["Alibaba-NLP/gte-large-en-v1.5", "http://62.146.169.111:8083/embed-small", 8192],
+            # ["Alibaba-NLP/gte-Qwen2-1.5B-instruct", "http://62.146.169.111:8083/embed-medium", 32768],
+            # ["thenlper/gte-small", "http://62.146.169.111:8083/embed-tiny", 512]
+        ]
+    }
+    ipfs_accelerate_py = ipfs_accelerate_py(resources, metadata)
+    asyncio.run(ipfs_accelerate_py.__test__(resources, metadata))
+    print("test complete")
