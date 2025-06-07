@@ -1,0 +1,13 @@
+### autofaiss dummpy 
+
+max_index_query_time_ms = 10 #@param {type: "number"}
+max_index_memory_usage = "1GB" #@param
+metric_type = "l2" #@param ['ip', 'l2']
+
+
+!autofaiss build_index --embeddings="/mnt/nvme/ammar_faiss/german" \
+                      --index_path="knn.index" \
+                      --index_infos_path="infos.json" \
+                      --metric_type={metric_type} \
+                      --max_index_query_time_ms=5 \
+                      --max_index_memory_usage={max_index_memory_usage}
