@@ -4,7 +4,7 @@ import tempfile
 import os
 import sys
 class ipfs_multiformats_py:
-    def __init__(self, resources, metadata): 
+    def __init__(self, resources=None, metadata=None): 
         self.multihash = multihash
         return None
     
@@ -30,11 +30,23 @@ class ipfs_multiformats_py:
             cid = CID('base32', 'raw', mh)
         else:
             with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
-                filename = f.name
-                with open(filename, 'w') as f_new:
-                    f_new.write(file_data)
-                file_content_hash = self.get_file_sha256(filename)
-                mh = self.get_multihash_sha256(file_content_hash)
-                cid = CID('base32', 1, 'raw', mh)
-                os.remove(filename)
+                try:
+                    filename = f.name
+                    with open(filename, 'w') as f_new:
+                        f_new.write(file_data)
+                    file_content_hash = self.get_file_sha256(filename)
+                    mh = self.get_multihash_sha256(file_content_hash)
+                    cid = CID('base32', 1, 'raw', mh)
+                    os.remove(filename)
+                except Exception as e:
+                    try:
+                        filename = f.name
+                        with open(filename, 'wb') as f_new:
+                            f_new.write(file_data)
+                        file_content_hash = self.get_file_sha256(filename)
+                        mh = self.get_multihash_sha256(file_content_hash)
+                        cid = CID('base32', 1, 'raw', mh)
+                        os.remove(filename)
+                    except Exception as e:
+                        print("Error: ", e)
         return str(cid)

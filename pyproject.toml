@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipfs_embeddings_py"
-version = "0.0.28"
+version = "0.0.29"
 authors = [
   { name="Benjamin Barber", email="starworks5@gmail.com" },
 ]
